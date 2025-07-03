@@ -61,14 +61,12 @@ export async function signUp(email: string, password: string, companyName: strin
     
     console.log('Registration successful:', data);
     
-    // Automatically sign in the user after successful registration
-    const supabase = createClient();
-    await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    return { success: true, user: data.user };
+    // Don't auto sign in - user needs to confirm email first
+    return { 
+      success: true, 
+      user: data.user, 
+      message: data.message || 'Verifică emailul pentru a confirma adresa.'
+    };
   } catch (error) {
     console.error('Eroare la înregistrare:', error);
     return { success: false, error };

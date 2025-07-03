@@ -14,6 +14,8 @@ import { toast } from "sonner";
 export default function RegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
   const [formData, setFormData] = useState({
     company: "",
     email: "",
@@ -62,8 +64,9 @@ export default function RegisterPage() {
       console.log("Registration result:", result);
       
       if (result.success && result.user) {
-        toast.success("Cont creat cu succes!");
-        router.push("/dashboard");
+        setIsRegistered(true);
+        setRegisteredEmail(formData.email);
+        toast.success(result.message || "Cont creat cu succes! Verifică emailul pentru a confirma adresa.");
       } else {
         let errorMessage = "A apărut o eroare la înregistrare.";
         let debugMessage = "";
@@ -105,27 +108,51 @@ export default function RegisterPage() {
         console.error("Registration error:", result.error);
       }
     } catch (error) {
-      console.error("Eroare la înregistrare:", error);
-      toast.error("A apărut o eroare la înregistrare.");
-      setError("A apărut o eroare la înregistrare.");
-      
-      if (error instanceof Error) {
-        setDebugInfo(error.message);
-      } else {
-        setDebugInfo(String(error));
-      }
+      console.error("Error during registration:", error);
+      toast.error("A apărut o eroare neașteptată. Te rugăm să încerci din nou.");
+      setError("A apărut o eroare neașteptată. Te rugăm să încerci din nou.");
     } finally {
       setIsLoading(false);
     }
   };
 
+  if (isRegistered) {
+    return (
+      <div className="flex items-center justify-center min-h-screen px-4 py-12">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1 text-center">
+            <CardTitle className="text-2xl">Verifică emailul</CardTitle>
+            <CardDescription>
+              Am trimis un email de confirmare la adresa <strong>{registeredEmail}</strong>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-muted p-4 rounded-md text-center">
+              <p>Te rugăm să verifici căsuța de email și să urmezi link-ul de confirmare pentru a activa contul.</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Dacă nu găsești emailul, verifică și în folderul Spam sau Promoții.
+              </p>
+            </div>
+            <Button 
+              className="w-full" 
+              variant="outline" 
+              onClick={() => router.push("/login")}
+            >
+              Mergi la pagina de autentificare
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-12">
+    <div className="flex items-center justify-center min-h-screen px-4 py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">Creare cont</CardTitle>
+          <CardTitle className="text-2xl">Creează un cont</CardTitle>
           <CardDescription>
-            Introdu datele pentru a crea un cont nou
+            Completează formularul de mai jos pentru a crea un cont
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>

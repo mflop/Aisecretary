@@ -23,9 +23,10 @@ export async function POST(request: Request) {
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Auto-confirm the email for development
+      email_confirm: false, // Set to false to require email confirmation
       user_metadata: {
         company_name: companyName,
+        language: 'ro', // Default language for emails
       },
     });
 
@@ -76,7 +77,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       success: true, 
       user: authData.user,
-      company: companyData
+      company: companyData,
+      message: 'Contul a fost creat. Verifică emailul pentru a confirma adresa.'
     });
   } catch (error) {
     console.error('Server error:', error);
