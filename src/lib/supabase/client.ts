@@ -5,6 +5,37 @@ export const createClient = () => {
   return createClientComponentClient<Database>();
 };
 
+// Helper function to get the current user's company ID
+export async function getCurrentCompanyId() {
+  const supabase = createClient();
+  try {
+    // Get the current user
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !userData?.user) {
+      console.error("Authentication error:", userError);
+      return null;
+    }
+    
+    // Get the company ID for the current user
+    const { data: companyData, error: companyError } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('user_id', userData.user.id)
+      .single();
+    
+    if (companyError || !companyData) {
+      console.error("Error fetching company:", companyError);
+      return null;
+    }
+    
+    return companyData.id;
+  } catch (error) {
+    console.error("Error getting company ID:", error);
+    return null;
+  }
+}
+
 export async function signUp(email: string, password: string, companyName: string) {
   try {
     console.log('Starting registration process via API...');

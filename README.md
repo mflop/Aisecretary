@@ -20,6 +20,143 @@ An AI-powered secretary application for small service businesses, built with Nex
 - Tailwind CSS
 - shadcn/ui components
 
+## Data Isolation and Security
+
+### Row-Level Security (RLS) Policies
+
+This application uses Supabase's Row-Level Security to ensure that each user can only access their own company's data. To set up RLS policies, run the following SQL in the Supabase SQL Editor:
+
+```sql
+-- Enable RLS on all tables
+ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE client_custom_fields ENABLE ROW LEVEL SECURITY;
+ALTER TABLE client_custom_values ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE message_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for clients table
+CREATE POLICY "Users can view their own company's clients" 
+ON clients FOR SELECT 
+USING (company_id IN (
+  SELECT id FROM companies WHERE user_id = auth.uid()
+));
+
+CREATE POLICY "Users can insert clients to their own company" 
+ON clients FOR INSERT 
+WITH CHECK (company_id IN (
+  SELECT id FROM companies WHERE user_id = auth.uid()
+));
+
+CREATE POLICY "Users can update their own company's clients" 
+ON clients FOR UPDATE 
+USING (company_id IN (
+  SELECT id FROM companies WHERE user_id = auth.uid()
+));
+
+CREATE POLICY "Users can delete their own company's clients" 
+ON clients FOR DELETE 
+USING (company_id IN (
+  SELECT id FROM companies WHERE user_id = auth.uid()
+));
+
+-- Policies for client_custom_fields
+CREATE POLICY "Users can view their own company's custom fields" 
+ON client_custom_fields FOR SELECT 
+USING (company_id IN (
+  SELECT id FROM companies WHERE user_id = auth.uid()
+));
+
+CREATE POLICY "Users can insert custom fields to their own company" 
+ON client_custom_fields FOR INSERT 
+WITH CHECK (company_id IN (
+  SELECT id FROM companies WHERE user_id = auth.uid()
+));
+
+CREATE POLICY "Users can update their own company's custom fields" 
+ON client_custom_fields FOR UPDATE 
+USING (company_id IN (
+  SELECT id FROM companies WHERE user_id = auth.uid()
+));
+
+CREATE POLICY "Users can delete their own company's custom fields" 
+ON client_custom_fields FOR DELETE 
+USING (company_id IN (
+  SELECT id FROM companies WHERE user_id = auth.uid()
+));
+
+-- Policies for client_custom_values
+CREATE POLICY "Users can view their own company's custom values" 
+ON client_custom_values FOR SELECT 
+USING (client_id IN (
+  SELECT id FROM clients WHERE company_id IN (
+    SELECT id FROM companies WHERE user_id = auth.uid()
+  )
+));
+
+CREATE POLICY "Users can insert custom values to their own company's clients" 
+ON client_custom_values FOR INSERT 
+WITH CHECK (client_id IN (
+  SELECT id FROM clients WHERE company_id IN (
+    SELECT id FROM companies WHERE user_id = auth.uid()
+  )
+));
+
+CREATE POLICY "Users can update their own company's custom values" 
+ON client_custom_values FOR UPDATE 
+USING (client_id IN (
+  SELECT id FROM clients WHERE company_id IN (
+    SELECT id FROM companies WHERE user_id = auth.uid()
+  )
+));
+
+CREATE POLICY "Users can delete their own company's custom values" 
+ON client_custom_values FOR DELETE 
+USING (client_id IN (
+  SELECT id FROM clients WHERE company_id IN (
+    SELECT id FROM companies WHERE user_id = auth.uid()
+  )
+));
+
+-- Policy for companies table (users can only view/edit their own company)
+CREATE POLICY "Users can view their own company" 
+ON companies FOR SELECT 
+USING (user_id = auth.uid());
+
+CREATE POLICY "Users can update their own company" 
+ON companies FOR UPDATE 
+USING (user_id = auth.uid());
+
+-- Similar policies for other tables (messages, invoices, etc.)
+```
+
+### Data Structure
+
+The application uses a multi-tenant data structure:
+
+1. Each user has a single company
+2. The company_id field is used to isolate data between users
+3. All tables have a company_id foreign key that links to the companies table
+4. The registration process creates both a user and a company record
+
+### Authentication Flow
+
+1. User registers with email, password, and company name
+2. A user record is created in Supabase Auth
+3. A company record is created and linked to the user
+4. The user's metadata is updated with the company_id
+5. The user is automatically signed in
+
+### Security Best Practices
+
+1. Always use RLS policies to restrict data access
+2. Use the `getCurrentCompanyId()` helper function to get the current user's company ID
+3. Always include company_id in queries to ensure data isolation
+4. Use server-side API routes for sensitive operations
+5. Validate user permissions in both client and server code
+
 ## Getting Started
 
 ### Prerequisites

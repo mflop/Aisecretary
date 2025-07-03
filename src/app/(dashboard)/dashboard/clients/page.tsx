@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, getCurrentCompanyId } from "@/lib/supabase/client";
 import { Database } from "@/types/supabase";
 import { useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -59,28 +59,11 @@ export default function ClientsPage() {
       setIsLoading(true);
       const supabase = createClient();
       
-      // Get the current user
-      const { data: authData } = await supabase.auth.getUser();
-      console.log("Current user:", authData?.user);
+      // Get the company ID using our helper function
+      const companyId = await getCurrentCompanyId();
       
-      if (!authData?.user) {
-        console.error("No authenticated user found");
-        setIsLoading(false);
-        return;
-      }
-      
-      // Get the company ID for the current user
-      const { data: companyData, error: companyError } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('user_id', authData.user.id)
-        .single();
-      
-      console.log("Company data:", companyData);
-      console.log("Company error:", companyError);
-      
-      if (companyError || !companyData) {
-        console.error("Error fetching company:", companyError);
+      if (!companyId) {
+        console.error("Could not get company ID");
         setIsLoading(false);
         return;
       }
@@ -89,7 +72,7 @@ export default function ClientsPage() {
       const { data: customFieldsData, error: customFieldsError } = await supabase
         .from('client_custom_fields')
         .select('*')
-        .eq('company_id', companyData.id)
+        .eq('company_id', companyId)
         .order('display_order', { ascending: true });
         
       if (customFieldsError) {
@@ -102,7 +85,7 @@ export default function ClientsPage() {
       const { data, error } = await supabase
         .from("clients")
         .select("*")
-        .eq("company_id", companyData.id)
+        .eq("company_id", companyId)
         .order("created_at", { ascending: false });
       
       console.log("Clients data:", data);

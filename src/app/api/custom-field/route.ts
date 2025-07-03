@@ -1,33 +1,35 @@
-import { createClient } from '@supabase/supabase-js';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { Database } from '@/types/supabase';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { fieldName, fieldType, fieldOptions, isRequired, userId } = body;
+    const { fieldName, fieldType, fieldOptions, isRequired } = body;
     
     console.log('Request body:', body);
-    
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
-    }
     
     if (!fieldName) {
       return NextResponse.json({ error: 'Field name is required' }, { status: 400 });
     }
     
-    // Create a direct Supabase client using service role key for admin operations
-    const supabase = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // Create a Supabase client with proper async cookie handling
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore });
     
-    // Get company ID for the user directly
+    // Get the current user
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !userData?.user) {
+      return NextResponse.json({ error: 'Authentication error', details: userError }, { status: 401 });
+    }
+    
+    // Get company ID for the current user
     const { data: companyData, error: companyError } = await supabase
       .from('companies')
       .select('id')
-      .eq('user_id', userId)
+      .eq('user_id', userData.user.id)
       .single();
     
     if (companyError || !companyData) {
